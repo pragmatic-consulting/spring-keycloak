@@ -1,0 +1,14 @@
+{
+  "realm": "poc-realm",
+  "auth-server-url": "http://localhost:8080/auth/",
+  "ssl-required": "none",
+  "use-resource-role-mappings" : true,
+  "bearer-only" : true,
+  "resource": "first-application",
+  "public-client": true,
+  "disable-trust-manager": true,
+  "credentials" : {
+      "secret" : "e597a6f0-506b-4b54-928a-e5fd2ed49617"
+   },
+   "realm-public-key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3PvI493Rj7Lg6Xrx3SlZQl86F3j1KQXSI6wxoI0kqFB0Y8GChV/OsOZxJR/4cW5sRSmVKIVfRlZY1xhKBpw5VC3uYJT1EgCleS1QJFPPQ20zqCoVjG5aRvg9sXAycZHCZtgeq03pXfowrmMcFQ/wkdbluuBeju+9pZi6o0GC0uO+JYAXxVGgN9ze29J+AAqtLcpqvLkNNOuVXg6nUwW2G+6QjQr0h/oix6Yf+t30bfsRYLGck6DbSEhblVibxtOJ14VQkzQ4KMQI7+DEKIF3AauV3EiT8SQfHJAwvsXzUgr1QnQh2qP207CVTIEWJ4WdXLRQEbLqk88CjwQW7AuPQwIDAQAB"
+}
