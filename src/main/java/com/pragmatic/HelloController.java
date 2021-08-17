@@ -1,15 +1,12 @@
 package com.pragmatic;
 
-import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
 import org.keycloak.KeycloakPrincipal;
 import org.keycloak.KeycloakSecurityContext;
-import org.keycloak.adapters.springsecurity.client.KeycloakRestTemplate;
 import org.keycloak.adapters.springsecurity.token.KeycloakAuthenticationToken;
 import org.keycloak.representations.AccessTokenResponse;
-import org.keycloak.representations.RefreshToken;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
@@ -27,9 +24,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 
 @Controller
@@ -57,23 +51,34 @@ public class HelloController {
 		return this.userServiceInterace.addUser(user);
 	}
 
+	/**
+	 * 
+	 * Simulating the TOKEN expiration and regeneration of the access token with an offline token.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws InterruptedException
+	 */
 	@RequestMapping(method = RequestMethod.GET, value = "/admin", produces = "application/json;charset=utf-8")
 	@ResponseBody
 	public String helloAdmin(final HttpServletRequest request) throws InterruptedException {
-		String offline_token = request.getHeader("offline_token");
+		String offline_token = request.getHeader("offline_token"); 	//getting the offline token from header sent by the client.
 		System.out.println("thread sleeping for 1 min");
-		Thread.sleep(60 * 1000 + 5);
+		Thread.sleep(60 * 1000 + 5); //sleeping the thread waiting for the token to expire
 		System.out.println("sending request...");
 		ResponseEntity<String> responseEntity = null;
-		try {
+		try { //sending the request
 			responseEntity = sendRequestToFirstApp(request, false, null);
-		} catch (HttpClientErrorException exception) {
+		} 
+		// HttpClientErrorException is catched when there is a 4.x.x Exception 
+		// in our case we expect 401
+		catch (HttpClientErrorException exception) {
 			System.out.println("HTTP Server Exception : Token invalid!");
-			ResponseEntity<AccessTokenResponse> tokenResponseEntity = this.refreshToken(offline_token);
+			ResponseEntity<AccessTokenResponse> tokenResponseEntity = this.refreshToken(offline_token);  //refreshing the token
 			System.out.println("token refreshed!");
 			System.out.println("resending request...");
 			AccessTokenResponse accessToken = tokenResponseEntity.getBody();
-			responseEntity = sendRequestToFirstApp(request, true, accessToken.getToken());
+			responseEntity = sendRequestToFirstApp(request, true, accessToken.getToken()); 	// resending the request with the new access token
 		}
 		if (responseEntity == null)
 			return null;
@@ -81,18 +86,36 @@ public class HelloController {
 		String response = responseEntity.getBody();
 		return response;
 	}
-
+	
+	
+	/**
+	 * Hello world endpoint
+	 * 
+	 * @param request
+	 * @return
+	 * @throws InterruptedException
+	 */
 	@RequestMapping(method = RequestMethod.GET, value = "/test-micro", produces = "application/json;charset=utf-8")
 	@ResponseBody
 	public String helloMicro(final HttpServletRequest request) throws InterruptedException {
 		return "if you're seeing this you're calling this from another microservice";
 	}
 
-	
+	/**
+	 * 
+	 * Refresh token method
+	 * 
+	 * @param offlineToken
+	 * @return
+	 */
 	private ResponseEntity<AccessTokenResponse> refreshToken(String offlineToken) {
 		System.out.println("refreshing token!");
-		int attempt = 1;
+		int attempt = 1; // 3 attempts max
 		RestTemplate restTemplate = new RestTemplate();
+		
+		/**
+		 * Creating the htt header with the values needed
+		 */
 		HttpHeaders httpHeaders = new HttpHeaders();
 		httpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 		MultiValueMap<String, String> map = new LinkedMultiValueMap<String, String>();
@@ -107,6 +130,8 @@ public class HelloController {
 			responseEntity = restTemplate.exchange(
 					"http://localhost:8080/auth/realms/poc-realm/protocol/openid-connect/token", HttpMethod.POST,
 					entity, AccessTokenResponse.class);
+			// this line should be updated : if the request is not 200 code it will throw an exception
+			// to catch this exception put all of this in a try catch block and catch HttpClientErrorException
 			if (responseEntity.getStatusCodeValue() == FORBBIDEN_CODE)
 				attempt++;
 			else
@@ -115,6 +140,15 @@ public class HelloController {
 		return responseEntity;
 	}
 
+	/**
+	 * 
+	 * Send the request to a route.
+	 * 
+	 * @param request
+	 * @param refresh
+	 * @param accessToken
+	 * @return
+	 */
 	private ResponseEntity<String> sendRequestToFirstApp(HttpServletRequest request, boolean refresh,
 			String accessToken) {
 		KeycloakAuthenticationToken token = (KeycloakAuthenticationToken) request.getUserPrincipal();
@@ -122,9 +156,9 @@ public class HelloController {
 		KeycloakSecurityContext keycloakSecurityContext = principal.getKeycloakSecurityContext();
 		RestTemplate restTemplate = new RestTemplate();
 		HttpHeaders httpHeaders = new HttpHeaders();
-		if (!refresh) {
+		if (!refresh) { // if the token is already valid, send the request with the token in the previous request.
 			httpHeaders.add("Authorization", "Bearer " + keycloakSecurityContext.getTokenString());
-		} else {
+		} else { // if the token is not valid send the request with the refresh token.
 			httpHeaders.add("Authorization", "Bearer " + accessToken);
 		}
 		httpHeaders.add("offline_token", request.getHeader("offline_token"));

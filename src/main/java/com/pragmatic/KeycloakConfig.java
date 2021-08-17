@@ -20,8 +20,8 @@ public class KeycloakConfig {
 
 	public static Keycloak getInstance(){
 	        if(keycloak == null){
-	           
-	            keycloak = KeycloakBuilder.builder()
+	           // creating an instance since of the keycloak admin client. (in this case we got the admin client with a username and password of the realm admin NOT THE KEYCLOAK ADMIN).
+	           keycloak = KeycloakBuilder.builder()
 	                    .serverUrl(serverUrl)
 	                    .realm(realm)
 	                    .grantType(OAuth2Constants.PASSWORD)

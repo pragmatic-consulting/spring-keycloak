@@ -10,8 +10,16 @@ import org.springframework.stereotype.Service;
 @Service
 public class UserService implements UserServiceInterace {
 
+	
+	/**
+	 * Add user method.
+	 * 
+	 * This method add a user in keycloak.
+	 */
 	public UserRepresentation addUser(User user) {
+		// getting an instance of the keycloak admin client from a specific realm. (in keycloak config)
 		UsersResource usersResource = KeycloakConfig.getInstance().realm(KeycloakConfig.realm).users();
+		// create credential representation since the keycloak user doesn't have only a password
 		CredentialRepresentation credentialRepresentation = createPasswordCredentials(user.getPassword());
 
 		UserRepresentation kcUser = new UserRepresentation();
@@ -29,6 +37,7 @@ public class UserService implements UserServiceInterace {
 
 	private static CredentialRepresentation createPasswordCredentials(String password) {
 		CredentialRepresentation passwordCredentials = new CredentialRepresentation();
+		// setting that the password is not temporary. (if it's true that means the user must change the password in the first login).
 		passwordCredentials.setTemporary(false);
 		passwordCredentials.setType(CredentialRepresentation.PASSWORD);
 		passwordCredentials.setValue(password);

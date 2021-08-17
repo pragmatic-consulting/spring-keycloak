@@ -16,11 +16,21 @@ import org.springframework.security.web.authentication.session.SessionAuthentica
 @EnableWebSecurity
 public class KeycloakSecurityConfig extends KeycloakWebSecurityConfigurerAdapter {
 
+	/**
+	 * RegisterSessionAuthenticationStrategy is used for public or confidential applications.
+	 * 
+	 * NullAuthenticatedSessionStrategy is used for bearer-only applications (login from the browser is not allowed).
+	 * 
+	 * We should discuss this.
+	 */
 	@Override
 	protected SessionAuthenticationStrategy sessionAuthenticationStrategy() {
 		return new RegisterSessionAuthenticationStrategy(new SessionRegistryImpl());
 	}
 
+	/**
+	 * Prevent default prefixing with "ROLE_" so the keycloak roles will be the same as the app. 
+	 */
 	@Override
 	protected void configure(AuthenticationManagerBuilder auth) throws Exception {
 		auth.authenticationProvider(keycloakAuthenticationProvider());
@@ -29,8 +39,12 @@ public class KeycloakSecurityConfig extends KeycloakWebSecurityConfigurerAdapter
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
 		super.configure(http);
-		http.cors().and().csrf().disable().authorizeRequests()
+		//enabling post requests without csrf.
+		http.cors().and().csrf().disable()
+		.authorizeRequests()
+		//enabling add user path
 		.antMatchers("/add-user/**").permitAll()
+		//securing other paths with roles
 		.antMatchers("/admin/**").hasAuthority("ADMIN")
 		.antMatchers("/manager/**").hasAuthority("MANAGER")
 		.anyRequest().authenticated();	
